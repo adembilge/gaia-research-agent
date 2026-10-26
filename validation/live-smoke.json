@@ -1,0 +1,163 @@
+{
+  "checked_at": "2026-10-26T11:46:17.885537+00:00",
+  "inference_tested": false,
+  "leaderboard_submitted": false,
+  "checks": {
+    "course_api": {
+      "ok": true,
+      "question_count": 20
+    },
+    "cca530fc-4052-43b2-b130-b30968d8aa44.png": {
+      "ok": false,
+      "error": "Course attachment endpoint is unavailable. For the official dataset fallback, accept access at https://huggingface.co/datasets/gaia-benchmark/GAIA and configure HF_DATASET_TOKEN (or HF_TOKEN) with dataset read access."
+    },
+    "99c9cc74-fdc8-46c6-8f8d-3ce2d3bfeea3.mp3": {
+      "ok": false,
+      "error": "Course attachment endpoint is unavailable. For the official dataset fallback, accept access at https://huggingface.co/datasets/gaia-benchmark/GAIA and configure HF_DATASET_TOKEN (or HF_TOKEN) with dataset read access."
+    },
+    "f918266a-b3e0-4914-865d-4faa564f1aef.py": {
+      "ok": false,
+      "error": "Course attachment endpoint is unavailable. For the official dataset fallback, accept access at https://huggingface.co/datasets/gaia-benchmark/GAIA and configure HF_DATASET_TOKEN (or HF_TOKEN) with dataset read access."
+    },
+    "1f975693-876d-457b-a649-393859e79bf3.mp3": {
+      "ok": false,
+      "error": "Course attachment endpoint is unavailable. For the official dataset fallback, accept access at https://huggingface.co/datasets/gaia-benchmark/GAIA and configure HF_DATASET_TOKEN (or HF_TOKEN) with dataset read access."
+    },
+    "7bd855d8-463d-4ed5-93ca-5fe35145f733.xlsx": {
+      "ok": false,
+      "error": "Course attachment endpoint is unavailable. For the official dataset fallback, accept access at https://huggingface.co/datasets/gaia-benchmark/GAIA and configure HF_DATASET_TOKEN (or HF_TOKEN) with dataset read access."
+    },
+    "web_search": {
+      "ok": true,
+      "result_count_or_characters": 6
+    },
+    "web_reader": {
+      "ok": true,
+      "result_count_or_characters": 4493
+    },
+    "pdf_reader": {
+      "ok": true,
+      "result_count_or_characters": 39795
+    },
+    "reasoning_model": {
+      "ok": true,
+      "model": "openai/gpt-oss-120b",
+      "providers": {
+        "groq": {
+          "status": "live",
+          "providerId": "openai/gpt-oss-120b",
+          "task": "conversational",
+          "isModelAuthor": false
+        },
+        "novita": {
+          "status": "live",
+          "providerId": "openai/gpt-oss-120b",
+          "task": "conversational",
+          "isModelAuthor": false
+        },
+        "cerebras": {
+          "status": "live",
+          "providerId": "gpt-oss-120b",
+          "task": "conversational",
+          "isModelAuthor": false
+        },
+        "nscale": {
+          "status": "live",
+          "providerId": "openai/gpt-oss-120b",
+          "task": "conversational",
+          "isModelAuthor": false
+        },
+        "together": {
+          "status": "live",
+          "providerId": "openai/gpt-oss-120b",
+          "task": "conversational",
+          "isModelAuthor": false
+        },
+        "fireworks-ai": {
+          "status": "live",
+          "providerId": "accounts/fireworks/models/gpt-oss-120b",
+          "task": "conversational",
+          "isModelAuthor": false
+        },
+        "featherless-ai": {
+          "status": "live",
+          "providerId": "openai/gpt-oss-120b",
+          "task": "conversational",
+          "isModelAuthor": false
+        },
+        "scaleway": {
+          "status": "live",
+          "providerId": "gpt-oss-120b",
+          "task": "conversational",
+          "isModelAuthor": false
+        },
+        "baseten": {
+          "status": "live",
+          "providerId": "openai/gpt-oss-120b",
+          "task": "conversational",
+          "isModelAuthor": false
+        },
+        "ovhcloud": {
+          "status": "live",
+          "providerId": "gpt-oss-120b",
+          "task": "conversational",
+          "isModelAuthor": false
+        },
+        "deepinfra": {
+          "status": "live",
+          "providerId": "openai/gpt-oss-120b",
+          "task": "conversational",
+          "isModelAuthor": false
+        }
+      }
+    },
+    "vision_model": {
+      "ok": true,
+      "model": "Qwen/Qwen2.5-VL-72B-Instruct",
+      "providers": {
+        "ovhcloud": {
+          "status": "live",
+          "providerId": "Qwen2.5-VL-72B-Instruct",
+          "task": "conversational",
+          "isModelAuthor": false
+        },
+        "featherless-ai": {
+          "status": "error",
+          "providerId": "Qwen/Qwen2.5-VL-72B-Instruct",
+          "task": "conversational",
+          "isModelAuthor": false
+        }
+      }
+    },
+    "audio_model": {
+      "ok": true,
+      "model": "openai/whisper-large-v3",
+      "providers": {
+        "fal-ai": {
+          "status": "live",
+          "providerId": "fal-ai/whisper",
+          "task": "automatic-speech-recognition",
+          "isModelAuthor": false
+        },
+        "replicate": {
+          "status": "live",
+          "providerId": "openai/whisper:8099696689d249cf8b122d833c36ac3f75505c666a395ca40ef26f68e7d3d16e",
+          "task": "automatic-speech-recognition",
+          "isModelAuthor": false
+        },
+        "hf-inference": {
+          "status": "live",
+          "providerId": "openai/whisper-large-v3",
+          "task": "automatic-speech-recognition",
+          "isModelAuthor": false
+        },
+        "deepinfra": {
+          "status": "live",
+          "providerId": "openai/whisper-large-v3",
+          "task": "automatic-speech-recognition",
+          "isModelAuthor": false
+        }
+      }
+    }
+  }
+}

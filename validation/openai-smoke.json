@@ -1,0 +1,28 @@
+{
+  "checked_at": "2026-10-26T12:02:32.282924+00:00",
+  "provider": "openai",
+  "models": {
+    "text": "gpt-4.1",
+    "vision": "gpt-4.1",
+    "audio": "gpt-transcribe"
+  },
+  "checks": {
+    "text_tools": {
+      "ok": true,
+      "observation": "42"
+    },
+    "vision": {
+      "ok": true,
+      "observation": "Red"
+    },
+    "audio": {
+      "ok": true,
+      "observation": "The answer is 42."
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2091,
+    "completion_tokens": 19,
+    "calls": 4
+  }
+}

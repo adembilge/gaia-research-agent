@@ -15,145 +15,284 @@ short_description: Evidence-seeking agent for the Agents Course final project
 
 # GAIA Research Agent
 
-A complete implementation for the [Hugging Face Agents Course final assignment](https://huggingface.co/learn/agents-course/unit4/hands-on), replacing the [template's fixed-answer agent](https://huggingface.co/spaces/agents-course/Final_Assignment_Template/tree/main) with a tool-calling research agent.
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](#quick-start)
+[![Official score 45%](https://img.shields.io/badge/Official_score-45%25-218838)](validation/official-score.json)
+[![48 tests passed](https://img.shields.io/badge/Tests-48_passed-218838)](VALIDATION.md)
+[![License MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
-The course uses 20 GAIA Level 1 questions and a 30% target. This project generates answers from questions and evidence; it contains no hardcoded benchmark answers or answer-key retrieval. **Official result on October 26, 2026: 45% (9/20 correct), above the course passing threshold.** Thirteen generated answers were submitted; unresolved questions still counted against the full 20-question score. The leaderboard was updated for `adamitistime`. The exact response is saved in [validation/official-score.json](validation/official-score.json). See [VALIDATION.md](VALIDATION.md) for test scope and remaining limitations.
+A Python agent for the [Hugging Face Agents Course final assignment](https://huggingface.co/learn/agents-course/unit4/hands-on). It uses OpenAI models and tools to research questions, inspect files, perform calculations, and produce answers for the course's GAIA evaluation.
 
-## Run locally on Windows
+**Verified result: 45% (9/20 correct), above the course's 30% target.** The official scoring API confirmed the result and updated the leaderboard on October 26, 2026.
 
-Python 3.12 is required. The workspace already has a virtual environment with dependencies installed.
+[Public Hugging Face source](https://huggingface.co/spaces/adamitistime/gaia-research-agent) · [Official scoring response](validation/official-score.json) · [Validation record](VALIDATION.md)
 
-1. Copy `.env.example` to `.env`.
-2. Set `OPENAI_API_KEY` to your OpenAI API key and keep `INFERENCE_PROVIDER=openai`. Store secrets in the local file or Space settings, never in source code.
-3. Start the app:
+## Contents
+
+- [Evaluation result](#evaluation-result)
+- [Quick start](#quick-start)
+- [Usage](#usage)
+- [How it works](#how-it-works)
+- [Configuration](#configuration)
+- [Hugging Face deployment](#hugging-face-deployment)
+- [Project structure](#project-structure)
+- [Development and validation](#development-and-validation)
+- [Limitations](#limitations)
+- [License](#license)
+
+## Evaluation result
+
+| Metric | Recorded result |
+| --- | --- |
+| Official score | **45.0%** |
+| Correct answers | **9 of 20** |
+| Answers submitted | 13 |
+| Questions unresolved | 7: five unavailable attachments and two unanswered research questions |
+| Course target | 30% |
+| Leaderboard account | `adamitistime` |
+| Evaluation date | October 26, 2026 |
+
+The score uses all 20 questions as its denominator, including unresolved questions. The scorer reports the total correct count without identifying individual correct or incorrect answers.
+
+The agent generated the submitted answers from questions and tool observations. No benchmark answer key or hardcoded task-answer lookup is included. This is one recorded run; changes to models, sources, or question availability can affect future results.
+
+Evidence: [scoring response](validation/official-score.json), [run summary](validation/evaluation-summary.json), and [validation details](VALIDATION.md). Full question-level logs stay in the local `runs/` directory and are excluded from Git.
+
+## Quick start
+
+### Prerequisites
+
+- Python **3.12** and Git.
+- An OpenAI API key with available API credits.
+- Optional: a Hugging Face token with access to the gated GAIA dataset for attachment questions.
+- Optional: [Stockfish](https://stockfishchess.org/download/) for chess analysis.
+
+### 1. Clone and install
+
+The commands below use Windows PowerShell and invoke the virtual environment directly, so activation is unnecessary.
+
+```powershell
+git clone https://github.com/adembilge/gaia-research-agent.git
+cd gaia-research-agent
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+Copy-Item .env.example .env
+```
+
+Dependencies are pinned in [requirements.lock.txt](requirements.lock.txt). Their original version ranges are in [requirements.in](requirements.in).
+
+### 2. Configure the API key
+
+Open `.env`, set `OPENAI_API_KEY`, and keep `INFERENCE_PROVIDER=openai`. The example already selects the default text, vision, and speech models.
+
+OpenAI handles inference and billing. Hugging Face credentials are used separately for gated dataset access and deployment. Store keys in `.env` locally or in Space secrets when hosting the Python app; `.env` is excluded from Git.
+
+### 3. Launch the app
 
 ```powershell
 .\.venv\Scripts\python.exe app.py
 ```
 
-Open [the local app](http://127.0.0.1:7860). On a fresh checkout, run `powershell -ExecutionPolicy Bypass -File .\start.ps1` to create the environment, install the pinned dependencies, and launch the app.
+Open **[http://127.0.0.1:7860](http://127.0.0.1:7860)**. The local server binds to `127.0.0.1`. Restart it after changing `.env`.
 
-Text, image, and speech inference use the OpenAI API and its billing. The app can display its interface without a key, but solving requires one. Your Hugging Face token is kept separate for gated dataset access and optional Space deployment. Restart the local app after changing `.env`.
+After configuring `.env`, you can also run `powershell -ExecutionPolicy Bypass -File .\start.ps1` to create the environment if needed, install dependencies, and launch the app.
 
-## Attachment availability
+## Usage
 
-The live course API's `/questions` route worked during validation on October 26, 2026, but **all five `/files/{task_id}` requests returned 404**. The client therefore supports this fallback:
+### Gradio interface
 
-1. It first requests the course API's file endpoint.
-2. If the endpoint returns 403 or 404, it downloads the exact attachment from `gaia-benchmark/GAIA`, at `2023/validation/<task_id>.<extension>`.
-3. It never downloads the dataset's answer metadata or annotations.
+| Tab | Workflow |
+| --- | --- |
+| Course evaluation | Generate answers, inspect results, resume interrupted runs, and submit to the official scorer. |
+| Try a question | Solve a custom question and inspect tool observations and usage. |
 
-To use the fallback, request/accept access on the [official GAIA dataset page](https://huggingface.co/datasets/gaia-benchmark/GAIA) yourself. Give your token read access to that gated dataset. You can put a separate read token in `HF_DATASET_TOKEN`; otherwise `HF_TOKEN` is used. Inference permission alone may not grant gated dataset reads. If attachments remain unavailable, other questions still run; explicit partial submission is available.
+To evaluate the course questions:
 
-## Deploy to Hugging Face Spaces
+1. Select **Generate / resume answers**.
+2. Review the answer table and download `results.json` for source URLs, tool calls, observations, attachment hashes, timing, and usage.
+3. Run the same action again to retry failures. Successful unchanged questions are reused.
+4. Select **Submit answers to leaderboard** when ready. Enable **Allow partial submission** to submit despite unresolved questions; missing answers still count against the full 20-question score.
 
-Hugging Face rejected this account's Gradio hosting request with HTTP 402 because PRO is required for hosted Gradio/Docker Spaces. A **free public static source mirror** is deployed at [adamitistime/gaia-research-agent](https://huggingface.co/spaces/adamitistime/gaia-research-agent). The agent runs locally and uses that Space's public code URL for the official submission. The source mirror does not run Python or store inference keys.
+Generating answers does not submit them. A successful submission response is saved, and submitting the same payload again returns the saved response. Timed-out submission requests are not automatically retried because the server may already have processed them.
 
-Publish the same free source mirror with:
+For local UI submission, set `AGENT_SPACE_ID=YOUR_USERNAME/gaia-research-agent` in `.env` and enter your Hugging Face username in the app. A hosted Gradio Space obtains the code URL from `SPACE_ID` and the username through OAuth.
+
+### Command line
+
+Check configuration and the live course API without using inference credits:
+
+```powershell
+.\.venv\Scripts\python.exe -m gaia_agent doctor
+```
+
+Test a custom question:
+
+```powershell
+.\.venv\Scripts\python.exe -m gaia_agent solve "What is 6 multiplied by 7? Give only the number."
+```
+
+Evaluate one course question, then resume the same directory for the remaining questions:
+
+```powershell
+.\.venv\Scripts\python.exe -m gaia_agent evaluate --limit 1 --run-dir runs/my-run
+.\.venv\Scripts\python.exe -m gaia_agent evaluate --run-dir runs/my-run
+```
+
+Submit a completed run after publishing the source in a public Space:
+
+```powershell
+.\.venv\Scripts\python.exe -m gaia_agent submit --run-dir runs/my-run --username YOUR_USERNAME --space-id YOUR_USERNAME/gaia-research-agent
+```
+
+Explicitly allow a partial submission when some questions remain unresolved:
+
+```powershell
+.\.venv\Scripts\python.exe -m gaia_agent submit --run-dir runs/my-run --username YOUR_USERNAME --space-id YOUR_USERNAME/gaia-research-agent --allow-partial
+```
+
+### Checkpoints and run history
+
+Results are saved after each question. Resume reuses successful answers when the question and run configuration still match. Changed questions are recomputed; changes to the implementation or model configuration require a new run directory.
+
+Each Gradio browser session has its own run directory. Browser state is not a persistent account history, and Space storage can disappear on restart. Download logs you need to retain. CLI runs can be resumed with the same `--run-dir`.
+
+## How it works
+
+The agent uses native tool calls through the OpenAI chat API. It receives a question and registered attachment names, requests tools when needed, examines their observations, and returns a short answer in the requested format.
+
+```mermaid
+flowchart LR
+    Q[Question and attachments] --> A[Agent loop]
+    A -->|Tool calls| T[Research and analysis tools]
+    T -->|Observations| A
+    A --> F[Formatted answer]
+    F --> R[Checkpoint and tool trace]
+    R -->|Explicit submission| S[Official course scorer]
+```
+
+The loop has bounded steps and output size. Authentication, permission, billing, and quota failures stop evaluation and preserve a checkpoint. Final-answer cleanup removes wrapping code fences or a `FINAL ANSWER:` prefix while preserving names, numbers, and punctuation.
+
+| Tool | Purpose |
+| --- | --- |
+| `web_search`, `read_web` | Search the web, extract HTML/PDF text, follow source links, and read long documents in sections. |
+| `read_file` | Read PDF, XLSX, DOCX, PPTX, text, CSV, and Python source attachments. |
+| `spreadsheet_sum` | Sum selected numeric cells with decimal arithmetic and report every included value. |
+| `calculator`, `text_operation` | Perform bounded arithmetic, reverse text, and sort comma-separated lists. |
+| `inspect_image` | Inspect an image attachment or public image URL with the vision model. |
+| `transcribe_audio` | Transcribe an audio attachment with the configured speech model. |
+| `youtube_transcript` | Retrieve timestamped video captions. |
+| `inspect_video` | Transcribe a short video's audio or inspect frames at selected timestamps. |
+| `analyze_chess` | Analyze a verified FEN with Stockfish and return SAN, evaluation, and principal variation. |
+
+The agent has access to registered attachments rather than unrestricted local files. Python attachments are read as source and reasoned through; no shell or arbitrary code-execution tool is exposed. Public-URL downloads block local and private network addresses and validate redirects. Inference endpoints are checked before credentials are sent.
+
+## Configuration
+
+Copy [.env.example](.env.example) to `.env` and adjust the values you need.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | Required for OpenAI inference | API credential. |
+| `INFERENCE_PROVIDER` | `openai` | Select `openai` or `huggingface`. |
+| `MODEL_ID` | `gpt-4.1` | Main model for answers and tool calls. |
+| `VISION_MODEL_ID` | `gpt-4.1` | Model for images and video frames. |
+| `ASR_MODEL_ID` | `gpt-transcribe` | Speech recognition model. |
+| `MODEL_BASE_URL` | `https://api.openai.com/v1` | Endpoint for the selected inference provider. |
+| `MAX_STEPS` | `18` | Tool-loop iterations before a final-answer request. |
+| `MAX_TOKENS` | `4096` | Maximum completion tokens per model request. |
+| `REQUEST_TIMEOUT` | `90` | Model request timeout, in seconds. |
+
+The default models passed live text/tool-call, image, and audio checks on October 26, 2026. API references: [GPT-4.1](https://developers.openai.com/api/docs/models/gpt-4.1) and [file transcription](https://developers.openai.com/api/docs/guides/speech-to-text).
+
+### Optional credentials and integrations
+
+| Variable | Purpose |
+| --- | --- |
+| `HF_DATASET_TOKEN` | Read token with access to `gaia-benchmark/GAIA` for attachment fallback. |
+| `HF_TOKEN` | Fallback credential for dataset reads and deployment; also used in Hugging Face inference mode. |
+| `HF_DEPLOY_TOKEN` | Write-capable token for the uploader; falls back to `HF_TOKEN`. |
+| `AGENT_SPACE_ID` | Public source Space, in `username/space-name` format, for local UI submission. |
+| `STOCKFISH_PATH` | Local Stockfish executable for chess analysis. |
+| `ALLOWED_HF_USERS` | Comma-separated trusted users allowed to invoke inference in a hosted Gradio Space, in addition to its owner. |
+
+<details>
+<summary>Use Hugging Face inference instead of OpenAI</summary>
+
+Set `INFERENCE_PROVIDER=huggingface` and use these values together:
+
+| Variable | Value |
+| --- | --- |
+| `MODEL_BASE_URL` | `https://router.huggingface.co/v1` |
+| `MODEL_ID` | `openai/gpt-oss-120b` |
+| `VISION_MODEL_ID` | `Qwen/Qwen2.5-VL-72B-Instruct` |
+| `ASR_MODEL_ID` | `openai/whisper-large-v3` |
+| `HF_ASR_PROVIDER` | `hf-inference` |
+
+Provide an `HF_TOKEN` with Inference Providers permission and available credits. The provider and endpoint must match.
+
+</details>
+
+### GAIA attachment access
+
+During validation on October 26, 2026, all five course `/files/{task_id}` requests returned HTTP 404. The client first tries that endpoint, then falls back on HTTP 403/404 to the exact attachment at `gaia-benchmark/GAIA/2023/validation/<task_id>.<extension>`.
+
+To enable the fallback, accept the conditions on the [official GAIA dataset page](https://huggingface.co/datasets/gaia-benchmark/GAIA) and give `HF_DATASET_TOKEN` read access to that dataset. If unset, the client uses `HF_TOKEN`. Only the requested attachment is downloaded; answer metadata and annotations are not retrieved.
+
+## Hugging Face deployment
+
+The published [adamitistime/gaia-research-agent Space](https://huggingface.co/spaces/adamitistime/gaia-research-agent) is a **static source mirror**. The evaluated Python agent ran locally, and the submission links to this public source. The static page does not execute Python or store API keys.
+
+The account's Gradio hosting request returned HTTP 402 during validation because PRO was required for that hosting. Choose the mode your account supports.
+
+### Static source mirror
+
+Set a write-capable `HF_DEPLOY_TOKEN` locally, then publish the source and a static overview page:
 
 ```powershell
 .\.venv\Scripts\python.exe deploy.py YOUR_USERNAME/gaia-research-agent --sdk static
 ```
 
-For accounts with eligible Gradio hosting, create a **public Gradio Space** using Python 3.12 and upload:
+Run the Python agent locally to generate answers.
 
-- `app.py`
-- the `gaia_agent/` directory
-- `requirements.txt` and `requirements.lock.txt`
-- `packages.txt` (installs Stockfish on the Space)
-- `README.md`, `VALIDATION.md`, `validation/`, and `LICENSE`
+### Running Gradio app
 
-Alternatively use the included uploader with a write-capable token stored locally as `HF_DEPLOY_TOKEN`:
+For an account with eligible Gradio hosting:
 
 ```powershell
 .\.venv\Scripts\python.exe deploy.py YOUR_USERNAME/gaia-research-agent
 ```
 
-The uploader refuses to update an existing Space unless you supply `--update`. It uploads only an explicit source-file allowlist. `.env`, runs, downloaded attachments, and the virtual environment are excluded.
+In the Space's **Settings → Variables and secrets**, add `OPENAI_API_KEY` as a secret and `HF_DATASET_TOKEN` if gated attachments are needed. Model IDs can be configured as variables. Organization-owned Spaces should put the operator's personal username in `ALLOWED_HF_USERS`.
 
-In the Space's **Settings → Variables and secrets**:
+The Gradio configuration enables Hugging Face OAuth. Only the owner and explicitly allowed users can invoke inference. Hosting this backend requires `app.py`, `gaia_agent/`, requirements files, `packages.txt`, and the README configuration; `packages.txt` installs Stockfish.
 
-- Add `OPENAI_API_KEY` as a **secret**. The default `INFERENCE_PROVIDER` is `openai`.
-- Add `HF_DATASET_TOKEN` as a secret if you use a separate gated-dataset read token.
-- Optionally add `MODEL_ID`, `VISION_MODEL_ID`, or `ASR_MODEL_ID` as variables.
-- For an organization-owned Space, put your personal username in `ALLOWED_HF_USERS`. Other trusted users can be comma-separated there too.
+The uploader scans files against configured secret values and excludes `.env`, local runs, and the virtual environment. It refuses to update an existing Space unless `--update` is supplied. Local secrets are never transferred; a static mirror needs none.
 
-The README enables Hugging Face OAuth. Log in with the Space owner's account before generating answers. Only the owner and explicitly allowed users can invoke inference, keeping a public Space from exposing your credits to anonymous visitors. Public visitors can still inspect the code.
+## Project structure
 
-The deploy script scans the upload against configured secret values and does not transfer local secrets. Add secrets only when deploying the running Gradio backend; a static source mirror needs none. Publish the Space before submitting so the leaderboard can link to your public implementation.
-
-## Evaluation and submission
-
-In the app:
-
-1. Click **Generate / resume answers**. The runner fetches the current questions, downloads attachments, and runs the agent once per task.
-2. Review answers and download `results.json`. It contains source URLs, tool calls, observations, attachment hashes, token counts, timing, and errors. It does not contain credentials or model-internal reasoning fields.
-3. Retry failures with **Generate / resume answers**. Successful unchanged questions are reused. Changed questions are recomputed. Changed implementation or model configuration requires a new run.
-4. Click **Submit answers to leaderboard** to obtain the official score. By default every current question must have an answer. To submit the answers available despite failures, select **Allow partial submission**. Unanswered questions still count against the full 20-question score.
-
-Generating answers never automatically updates the leaderboard. Submission is a separate deliberate action. A successful submission response is saved; repeating the same payload returns the saved response. A timed-out POST is not automatically retried because it may already have reached the server.
-
-Each browser session receives its own temporary run directory, and checkpoints survive interrupted tasks within that session. On free Spaces, disk can disappear on restart and Gradio browser state is not a persistent account history. Download completed logs before restarting. CLI run directories can be reopened explicitly.
-
-### Command line
-
-```powershell
-# Readiness check: course API and configuration, no inference calls
-.\.venv\Scripts\python.exe -m gaia_agent doctor
-
-# Try one inexpensive reasoning question to validate your token/model
-.\.venv\Scripts\python.exe -m gaia_agent solve "What is 6 multiplied by 7? Give only the number."
-
-# Try one course task; then resume the same directory for the remaining tasks
-.\.venv\Scripts\python.exe -m gaia_agent evaluate --limit 1 --run-dir runs/my-run
-.\.venv\Scripts\python.exe -m gaia_agent evaluate --run-dir runs/my-run
-
-# Submit after the code is public and answers have been reviewed
-.\.venv\Scripts\python.exe -m gaia_agent submit --run-dir runs/my-run --username YOUR_USERNAME --space-id YOUR_USERNAME/gaia-research-agent
-
-# If necessary, explicitly submit successful tasks despite unresolved questions
-.\.venv\Scripts\python.exe -m gaia_agent submit --run-dir runs/my-run --username YOUR_USERNAME --space-id YOUR_USERNAME/gaia-research-agent --allow-partial
+```text
+gaia-research-agent/
+├── app.py                       # Gradio interface
+├── gaia_agent/
+│   ├── agent.py                 # Tool-calling loop and answer handling
+│   ├── config.py                # Provider settings and safe error reporting
+│   ├── course.py                # Course API and attachment fallback
+│   ├── evaluation.py            # Checkpoints, resume, and submission
+│   ├── model.py                 # Chat, vision, and speech clients
+│   ├── net.py                   # Bounded public-URL downloads
+│   ├── tools.py                 # Research and analysis tools
+│   └── __main__.py              # CLI commands
+├── tests/                       # Unit tests and integration fixtures
+├── scripts/smoke_live.py         # Read-only live checks
+├── validation/                  # Checks and official score evidence
+├── deploy.py                    # Static or Gradio Space uploader
+├── start.ps1                    # Windows setup and launch helper
+├── .env.example                 # Configuration template without credentials
+├── requirements.lock.txt        # Pinned runtime dependencies
+├── packages.txt                 # Stockfish dependency for hosted execution
+└── VALIDATION.md                # Verification scope and limitations
 ```
 
-For local UI submission, set `AGENT_SPACE_ID=YOUR_USERNAME/gaia-research-agent` in `.env` and enter your username in the UI. On Spaces, the app derives the code URL from `SPACE_ID` and the username from OAuth.
-
-## How the agent works
-
-The agent uses the OpenAI chat API with native tool calls. Requests use the documented `max_completion_tokens` parameter; audio files use the OpenAI transcription API. Its bounded loop asks the model for either tool calls or a short final answer, executes tools, returns observations, and repeats. The prompt requests the exact answer format used by the course scorer. Formatting cleanup only removes wrapping code fences or a `FINAL ANSWER:` prefix; it does not rewrite names, numbers, or punctuation.
-
-Default models, verified with live OpenAI calls on October 26, 2026:
-
-| Purpose | Model | Configuration |
-| --- | --- | --- |
-| Reasoning and tool calls | `gpt-4.1` | `MODEL_ID` |
-| Images and video frames | `gpt-4.1` | `VISION_MODEL_ID` |
-| Speech recognition | `gpt-transcribe` | `ASR_MODEL_ID` |
-
-The default text and vision model supports image input and function calling: see the [official GPT-4.1 documentation](https://developers.openai.com/api/docs/models/gpt-4.1). Speech recognition follows the [official file-transcription guide](https://developers.openai.com/api/docs/guides/speech-to-text). Model IDs remain configurable. Account-level authentication, permission, billing, or quota failures stop the run immediately and save a checkpoint.
-
-Optional Hugging Face inference support remains available: set `INFERENCE_PROVIDER=huggingface`, `MODEL_BASE_URL=https://router.huggingface.co/v1`, `MODEL_ID=openai/gpt-oss-120b`, `VISION_MODEL_ID=Qwen/Qwen2.5-VL-72B-Instruct`, and `ASR_MODEL_ID=openai/whisper-large-v3`, with an inference-enabled `HF_TOKEN`. The client validates the selected provider's endpoint before sending credentials, preventing an OpenAI key from being sent to the Hugging Face router or vice versa.
-
-| Tool | Purpose |
-| --- | --- |
-| `web_search`, `read_web` | Search, read HTML/PDFs, follow primary-source links, paginate long text |
-| `read_file` | Read PDF/XLSX/DOCX/PPTX/text/CSV and Python source attachments |
-| `spreadsheet_sum` | Sum explicitly selected cells using decimal arithmetic; report every included value |
-| `calculator`, `text_operation` | Bounded arithmetic, reverse text, sort lists |
-| `inspect_image` | Send an attachment or public image to the vision model |
-| `transcribe_audio` | Transcribe an audio attachment through OpenAI (or the optional Hugging Face provider) |
-| `youtube_transcript` | Retrieve timestamped captions |
-| `inspect_video` | Download a short YouTube video; transcribe audio or inspect chosen frames |
-| `analyze_chess` | Analyze a verified FEN with Stockfish and return SAN plus evaluation |
-
-The model sees registered attachment names, not unrestricted filesystem access. There is no shell or arbitrary Python execution tool. Python attachments are read and reasoned through; complex source programs may exceed this approach. This choice avoids treating downloaded code as trusted instructions.
-
-Other practical limits: scanned PDFs need OCR that is not implemented; spreadsheet formulas use existing cached values and are not recalculated; workbook reads are capped at 2,000 rows and 80 columns; webpage/PDF text is capped at 600,000 characters; videos are capped at ten minutes and 75 MiB; at most 12 video frames are inspected per tool call. Sparse frame sampling cannot guarantee an exact visual maximum. YouTube can block captions/downloads from data-center IPs. Stockfish quality depends on correct visual transcription of the board.
-
-For local chess analysis, install [Stockfish](https://stockfishchess.org/download/) and set `STOCKFISH_PATH` to its executable. Spaces installs it via `packages.txt`.
-
-## Files and verification
-
-`app.py` contains the UI; `gaia_agent/agent.py` the loop; `tools.py` the tools; `course.py` the assignment API and attachment fallback; `evaluation.py` checkpoints and submission; `model.py` the OpenAI/Hugging Face model client. `deploy.py` publishes source files explicitly.
+## Development and validation
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
@@ -162,4 +301,24 @@ For local chess analysis, install [Stockfish](https://stockfishchess.org/downloa
 .\.venv\Scripts\python.exe scripts/smoke_live.py
 ```
 
-The smoke script reads live questions, attempts attachments, checks search/web/PDF extraction and, in Hugging Face mode, model provider mappings, and saves a report under `runs/live-smoke/`. It never invokes inference or submits answers. Unit tests use synthetic fixtures and mocked models/scoring; their pass rate is not benchmark accuracy.
+**48 automated tests passed** in the recorded validation. They cover tool-call handling, bounded calculations, spreadsheet aggregation, attachment access, credential separation, checkpoint reuse, submission behavior, quota failures, and authorization. Model and scorer tests use synthetic fixtures and mocks; their pass count is separate from GAIA accuracy.
+
+The smoke script checks live questions, attachment retrieval, search, webpage/PDF extraction, and provider mappings in Hugging Face mode. It saves results under `runs/live-smoke/` without invoking inference or submitting answers. Recorded OpenAI checks and scoring evidence are in [validation/](validation/).
+
+## Limitations
+
+| Area | Current behavior |
+| --- | --- |
+| Evaluation coverage | Five attachment questions and two research questions remained unresolved in the passing run. |
+| Scanned PDFs | Text extraction is supported; OCR is not implemented. |
+| Spreadsheets | Reads are capped at 2,000 rows and 80 columns. Formulas use stored Excel values without recalculation; source formulas can be inspected. |
+| Long documents | Extracted webpage/PDF text is capped at 600,000 characters. |
+| Video analysis | Videos are limited to ten minutes and 75 MiB, with up to 12 sampled frames per call. Sparse sampling cannot establish an exact visual maximum. |
+| YouTube access | Captions and downloads can be blocked by YouTube or the runtime IP. |
+| Python attachments | Source is reasoned through without arbitrary code execution. Complex programs may exceed this approach. |
+| Chess | Stockfish depends on a correctly transcribed board and an available executable. |
+| Hosted authentication | Authorization logic is tested locally; OAuth in a running hosted Gradio Space has not been verified. |
+
+## License
+
+Released under the [MIT License](LICENSE).
